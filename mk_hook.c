@@ -42,6 +42,36 @@ void _mk_watchdog_start(uint32_t reload_value, uint32_t blink_rate);
 
 
 
+void mkWatch(int action)
+{
+if(action==CMD_SHORT_HELP) return;
+if(action==CMD_LONG_HELP) {
+printf("mkWatch\n\n"
+"This command runs a blinking LEDs until user presses the button\n"
+);
+return;
+}
+
+uint32_t reload_value;
+uint32_t blink_rate;
+int fetch_status;
+fetch_status = fetch_uint32_arg(&reload_value);
+
+if (fetch_status) {
+    //use a default value
+    reload_value = DEFAULT_RESET_TIME;
+}
+fetch_status = fetch_uint32_arg(&blink_rate);
+
+if (fetch_status) {
+    //use a default value
+    blink_rate = DEFAULT_BLINK_RATE;
+}
+
+printf("Watchdog timeout is: %ldms     Delay between toggling is: %ldms\n", reload_value, blink_rate);
+_mk_watchdog_start(reload_value, blink_rate);
+}
+ADD_CMD("_mkWatch", mkWatch,"Blink LEDs using interrupt handler and watchdog")
 
 
 
