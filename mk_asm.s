@@ -101,6 +101,34 @@ _mk_watchdog_start:
 
 
 @@ Function Header Block
+.code 16                                @ This directive selects the instruction set being generated.
+                                        @ The value 16 selects Thumb, with the value 32 selecting ARM.
+.text
+
+.global _mk_a5_button_handler              @ Make the symbol name for the function visible to the linker
+
+.type _mk_a5_button_handler, %function     @ Declares that the symbol is a function 
+
+@ function Declaration: void _mk_a5_button_handler(void);
+@
+@ Input: none
+@ Return: none
+@
+@Description: Handles the button press event.
+_mk_a5_button_handler:
+    push {lr}
+    
+    ldr r0, =button_pressed             @ take the address of button_pressed
+    mov r1, #1                          @ set r1 to be #1   
+    str r1, [r0]                        @ store r1 into button_pressed
+    
+    pop {lr}
+    bx lr
+
+.size _mk_a5_button_handler, .-_mk_a5_button_handler @@ - symbol size (not strictly required, but makes the debugger happy)
+
+
+@@ Function Header Block
 .align 2                @ Code alignment - 2^n alignment (n=2)
                         @ This causes the assembler to use 4 byte alignment
 
@@ -131,10 +159,16 @@ _mk_a5_tick_handler:
     beq cycle_end               @ If it's 0, skip execution of _mk_a5_tick_handler
                                 @ This flag prevents the function from running when
                                 @ you want to run other functions
+    ldr r0, =button_pressed           
+    ldr r1, [r0]
+    cmp r1, #1
+    beq skip_refreshing_watchdog
+
+    bl mes_IWDGRefresh              @ refresh watchdog timeout
     
-    
-    
-    @ make it toggle forever
+skip_refreshing_watchdog:
+      
+
     ldr r1, =initial_game_time
     ldr r0, [r1]
     subs r0, #1
