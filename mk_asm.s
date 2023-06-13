@@ -100,6 +100,94 @@ _mk_watchdog_start:
 .size _mk_watchdog_start, .-_mk_watchdog_start @@ - symbol size (not strictly required, but makes the debugger happy)
 
 
+@@ Function Header Block
+.align 2                @ Code alignment - 2^n alignment (n=2)
+                        @ This causes the assembler to use 4 byte alignment
+
+.syntax unified         @ Sets the instruction set to the new unified ARM + THUMB
+                        @ instructions. The default is divided (separate instruction sets)
+
+.global _mk_a5_tick_handler        @ Make the symbol name for the function visible to the linker
+
+.code 16                @ This directive selects the instruction set being generated.
+                        @ The value 16 selects Thumb, with the value 32 selecting ARM.
+.thumb_func             @ specifies that the following symbol is the name of a THUMB
+                        @ encoded function. 
+
+.type _mk_a5_tick_handler, %function    @ Declares that the symbol is a function 
+
+@ function Declaration: 
+@
+@ Input: none
+@ Return: none
+@
+@H Description: Blinks the LEDs and if an interrupt happens reset the board using watchdog
+_mk_a5_tick_handler:
+    push {r4-r7,lr}
+    
+    ldr r0, =execute_mk_a5
+    ldr r1, [r0]
+    cmp r1, #0                  @ Check if execute_mk_a5 is 0
+    beq cycle_end               @ If it's 0, skip execution of _mk_a5_tick_handler
+                                @ This flag prevents the function from running when
+                                @ you want to run other functions
+    
+    
+    
+    @ make it toggle forever
+    ldr r1, =initial_game_time
+    ldr r0, [r1]
+    subs r0, #1
+    ble cycle_end
+    
+    ldr r1, =blink_rate         @ count down blink_rate (delay between blinks)
+    ldr r0, [r1]
+    subs r0, r0, #1
+    str r0, [r1]                @ store the decrement count
+    cmp r0, #0              
+    bgt cycle_end               @ while >0 go to cycle_end
+ 
+    ldr r2, =cycle_to_toggle    @ load cycle_to_toggle value
+    ldr r3, [r2]
+    cmp r3, #0                  @ check if cycle_to_toggle is positive
+    it gt                       
+    bgt toggle_on               @ jump to toggle_on if positive
+    ble toggle_off              @ jump to toggle_off if negative or zero
+
+toggle_on:
+    ldr r1, =LEDaddress
+    ldr r1, [r1]
+    ldr r0, [r1]
+    orr r0, r0, #0xFF00         @ turn on all LEDs
+    strh r0, [r1]
+
+    b update_toggle
+
+toggle_off:
+    ldr r1, =LEDaddress
+    ldr r1, [r1]
+    ldr r0, [r1]
+    and r0, r0, #0x00FF         @ turn off all LEDs
+    strh r0, [r1]
+
+update_toggle:
+    ldr r2, =cycle_to_toggle    @ load cycle_to_toggle value
+    ldr r3, [r2]
+    negs r3, r3                 @ negate the cycle_to_toggle value
+    str r3, [r2]                @ store it back
+
+    @ reset our blink_rate to its initial value
+    ldr r1, =blink_rate              
+    ldr r2, =initial_blink_rate
+    ldr r2, [r2]
+    str r2, [r1]
+       
+cycle_end:
+    
+    pop {r4-r7,lr}
+    bx lr
+
+.size _mk_a5_tick_handler, .-_mk_a5_tick_handler @@ - symbol size (not strictly required, but makes the debugger happy)
 
 
 
