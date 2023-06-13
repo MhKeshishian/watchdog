@@ -39,7 +39,65 @@ bx lr @ Return (Branch eXchange) to the address in the link register (lr)
 
 
 
+.data
+reload_value: .word 0                    @ Variable to hold the reload value
+blink_rate: .word 0                      @ Variable to hold the blink rate
+initial_blink_rate: .word 0              @ Initial value of the blink rate
+initial_game_time: .word 3               @ Initial value of the game time
+LEDaddress: .word 0x48001014             @ Address of the LED
+cycle_to_toggle: .word 1                 @ Variable to control the toggle cycle
+execute_mk_a5: .word 0                   @ Flag to control execution of _mk_a5_tick_handler
+button_pressed: .word 0                  @ Variable to hold the button pressed state
 
+
+@@ Function Header Block
+.code 16                                @ This directive selects the instruction set being generated.
+                                        @ The value 16 selects Thumb, with the value 32 selecting ARM.
+.text
+
+.global _mk_watchdog_start              @ Make the symbol name for the function visible to the linker
+
+.type _mk_watchdog_start, %function     @ Declares that the symbol is a function 
+
+@ function Declaration: mk_watch(uint32_t reload_value, uint32_t blink_rate);
+@
+@ Input: R0 (holds the value of reload), R1 (holds the value of blink rate)
+@ Return: none
+@
+@ Description: Initializes the watchdog and starts it with the specified reload value and blink rate.
+_mk_watchdog_start:
+    push {r4-r7,lr}
+    
+    ldr r2, =reload_value
+    str r0, [r2]                    @ store value of r0 in reload_value
+    
+    ldr r2, =blink_rate          
+    str r1, [r2]                    @ store value of r1 in blink_rate
+
+    ldr r2, =initial_blink_rate     @ keep initial value to use later
+    str r1, [r2]
+
+    ldr r2, =execute_mk_a5
+    mov r3, #1                      @ set execute_mk_a5 to 1
+    str r3, [r2]                    @ initialize execute_mk_a5 to 1
+
+
+    @ initializing watchdog
+    push {r0-r3, lr}
+    bl mes_InitIWDG
+    pop {r0-r3, lr}
+
+    @ @ starting watchdog
+    push {r0-r3, lr}
+    bl mes_IWDGStart
+    pop {r0-r3, lr}
+
+    
+    
+    pop {r4-r7,lr}
+    bx lr
+
+.size _mk_watchdog_start, .-_mk_watchdog_start @@ - symbol size (not strictly required, but makes the debugger happy)
 
 
 
